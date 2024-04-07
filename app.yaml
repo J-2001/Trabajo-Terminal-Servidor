@@ -1,5 +1,4 @@
 runtime: nodejs20
 
 env_variables:
-  GOOGLE_CLOUD_PROJECT: "trabajo-terminal-servidor"
   GCLOUD_STORAGE_BUCKET: "trabajo-terminal-servidor.appspot.com"
