@@ -39,6 +39,7 @@ async function downloadFile() {
 /* Express */
 const express = require('express');
 const app = express();
+app.use(express.json());
 
 app.get('/', (req, res) => {
     let answer = 'Hello from App Engine!';
@@ -59,8 +60,23 @@ app.get('/', (req, res) => {
 });
 
 app.post('/', (req, res) => {
-    const data = req.body;
-    res.send('POST requested...');
+    const accion = req.get('accion');
+    if (accion === 'Registro') {
+        const token = req.body.token;
+        console.log(`Token recibido: ${token}`);
+        downloadFile().then(() => {
+            try {
+                fs.writeFileSync(path.join(filePath, fileName), '\n' + token, { flag: 'a+' });
+                uploadFile().then(() => {
+                    res.send(`Token ${token} registrado correctamente!`)
+                }).catch(console.error);
+            } catch (err) {
+                console.error(err);
+            }
+        }).catch(console.error);
+    } else {
+        res.send('POST recibed...');
+    }    
 });
 
 const PORT = process.env.PORT || 8080;
