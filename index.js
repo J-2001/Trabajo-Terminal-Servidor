@@ -59,7 +59,8 @@ app.get('/', (req, res) => {
 });
 
 app.post('/', (req, res) => {
-    res.send('POST requested...')
+    const data = req.body;
+    res.send('POST requested...');
 });
 
 const PORT = process.env.PORT || 8080;
