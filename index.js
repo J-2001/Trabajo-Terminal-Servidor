@@ -1,19 +1,19 @@
 /* Firebase Admin SDK */
 const { initializeApp } = require('firebase-admin/app');
+const { getMessaging } = require('firebase-admin/messaging');
 const admin = initializeApp();
 
 /* Google Cloud Storage */
 const bucketName = process.env.GCLOUD_STORAGE_BUCKET;
-console.log(bucketName);
 const filePath = '/tmp/';
 const fileName = 'tokens.txt';
+const path = require('node:path');
 
 const {Storage} = require('@google-cloud/storage');
 const storage = new Storage({
   projectId: process.env.GOOGLE_CLOUD_PROJECT,
   keyFileName: "trabajo-terminal-servidor-0b12ed3146c9.json",
 });
-const path = require('node:path');
 
 async function checkFile() {
     return await storage.bucket(bucketName).file(fileName).exists();
@@ -42,21 +42,65 @@ const app = express();
 app.use(express.json());
 
 app.get('/', (req, res) => {
-    let answer = 'Hello from App Engine!';
-    answer += `\nContenido en ${fileName}:\n`;
-    console.log('Descargando archivo...');
-    downloadFile().then(() => {
-        try {
-            const data = fs.readFileSync(path.join(filePath, fileName), 'utf-8');
-            console.log(`data: ${data}`);
-            answer += data;
-        } catch (err) {
-            console.log('Error aqui: 1!');
-            console.error(err);
-            answer += err;
+    const accion = req.get('accion');
+    if (accion) {
+        if (accion === 'Tokens') {
+            console.log('Tokens');
+            let answer = '';
+            downloadFile().then(() => {
+                try {
+                    const data = fs.readFileSync(path.join(filePath, fileName),'utf-8');
+                    answer += data;
+                } catch (err) {
+                    answer += err;
+                    console.error(err);
+                }
+                res.send(answer);
+            }).catch(console.error);
+        } else if (accion === 'Reporte') {
+            console.log('Reporte');
+            downloadFile().then(() => {
+                try {
+                    const data = fs.readFileSync(path.join(filePath, fileName), 'utf-8');
+                    const registrationTokens = data.split("\n").filter(Boolean);
+                    const message = {
+                        data: {
+                            score: '850',
+                            time: '2:45'
+                        },
+                        tokens: registrationTokens,
+                    };
+                    console.log(`Tokens: ${message.tokens}`);
+                    getMessaging().sendMulticast(message).then((response) => {
+                        const r = `${response.successCount} messages were sent successfully`;
+                        console.log(r);
+                        res.send(r);
+                    }).catch(console.error);
+                    const message1 = {
+                        notification: {
+                            title: 'Prueba',
+                            body: 'Reporte'
+                        },
+                    };
+                } catch (err) {
+                    console.error(err);
+                }
+            }).catch(console.error);
         }
-    }).catch(console.error);
-    res.send(answer);
+    } else {
+        let answer = 'Hello from App Engine!';
+        answer+= `\nContenido en ${fileName}:\n`;
+        downloadFile().then(() => {
+            try {
+                const data = fs.readFileSync(path.join(filePath, fileName), 'utf-8');
+                answer += data;
+            } catch (err) {
+                console.error(err);
+                answer += err;
+            }
+            res.send(answer);
+        }).catch(console.error);
+    }
 });
 
 app.post('/', (req, res) => {
