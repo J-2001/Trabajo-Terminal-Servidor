@@ -7,6 +7,8 @@ const admin = initializeApp();
 const bucketName = process.env.GCLOUD_STORAGE_BUCKET;
 const filePath = '/tmp/';
 const fileName = 'tokens.txt';
+const iFileName = 'devicesInfo.txt';
+let dFileName = '';
 const path = require('node:path');
 
 const {Storage} = require('@google-cloud/storage');
@@ -36,6 +38,10 @@ async function downloadFile() {
     console.log(`gs://${bucketName}/${fileName} downloaded to ${filePath}`);
 }
 
+async function checkDFile() {
+    return await storage.bucket(bucketName).file(dFileName).exists();
+}
+
 /* Express */
 const express = require('express');
 const app = express();
@@ -57,6 +63,51 @@ app.get('/', (req, res) => {
                 }
                 res.send(answer);
             }).catch(console.error);
+        } else if (accion === 'Info') {
+            console.log('Info');
+            downloadFile().then(() => {
+                try {
+                    const data = fs.readFileSync(path.join(filePath, fileName), 'utf-8');
+                    const registrationTokens = data.split("\n").filter(Boolean);
+                    const message = {
+                        data: {
+                            info: ''
+                        },
+                        tokens: registrationTokens,
+                    };
+                    fs.writeFileSync(path.join(filePath, iFileName), '');
+                    getMessaging().sendMulticast(message).then((response) => {
+                        const r = `${response.successCount} messages were sent successfully`;
+                        console.log(r);
+                        res.send(r);
+                    }).catch(console.error);
+                } catch (err) {
+                    console.error(err);
+                }
+            }).catch(console.error);
+        } else if (accion === 'Extract') {
+            console.log('Extract');
+            downloadFile().then(() => {
+                try {
+                    const data = fs.readFileSync(path.join(filePath, fileName), 'utf-8');
+                    const registrationTokens = data.split("\n").filter(Boolean);
+                    const message = {
+                        data: {
+                            extract: ''
+                        },
+                        tokens: registrationTokens,    
+                    };
+                    dFileName = new  Date().toISOString().replaceAll('-', '').replace('T', '').replaceAll(':', '').slice(2, 14);
+                    console.log(`dFileName: ${dFileName}`);
+                    getMessaging().sendMulticast(message).then((response) => {
+                        const r = `${response.successCount} messages were sent successfully`;
+                        console.log(r);
+                        res.send(r);
+                    }).catch(console.error);
+                } catch (err) {
+                    console.error(err);
+                }
+            }).catch(console.error);
         } else if (accion === 'Reporte') {
             console.log('Reporte');
             downloadFile().then(() => {
@@ -70,18 +121,11 @@ app.get('/', (req, res) => {
                         },
                         tokens: registrationTokens,
                     };
-                    console.log(`Tokens: ${message.tokens}`);
                     getMessaging().sendMulticast(message).then((response) => {
                         const r = `${response.successCount} messages were sent successfully`;
                         console.log(r);
                         res.send(r);
                     }).catch(console.error);
-                    const message1 = {
-                        notification: {
-                            title: 'Prueba',
-                            body: 'Reporte'
-                        },
-                    };
                 } catch (err) {
                     console.error(err);
                 }
@@ -118,7 +162,15 @@ app.post('/', (req, res) => {
                 console.error(err);
             }
         }).catch(console.error);
-    } else {
+    } else if (accion === 'Info') {
+        const info = req.body.data;
+        console.log(`Device Info: ${info}`);
+        res.send('Info recibed...');
+    } else if (accion === 'Extraction') {
+        console.log(`Content-Type: ${req.get('Content-Type')}`);
+        console.log(`Params: ${req.params}`);
+        console.log(`Body: ${req.body}`)
+        console.log(`DB: ${req.body.data}`)
         res.send('POST recibed...');
     }    
 });
