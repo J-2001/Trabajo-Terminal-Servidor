@@ -77,14 +77,21 @@ app.get('/', (req, res) => {
                     };
                     fs.writeFileSync(path.join(filePath, iFileName), '');
                     getMessaging().sendMulticast(message).then((response) => {
-                        const r = `${response.successCount} messages were sent successfully`;
+                        const r = response.successCount;
                         console.log(r);
-                        res.send(r);
+                        res.send(r.toString());
                     }).catch(console.error);
                 } catch (err) {
                     console.error(err);
                 }
             }).catch(console.error);
+        } else if (accion === 'CInfo') {
+            try {
+                const n = fs.readFileSync(path.join(filePath, iFileName), 'utf-8').split("_");
+                res.send(n.length.toString());
+            } catch (err) {
+                console.error(err);
+            }
         } else if (accion === 'Extract') {
             console.log('Extract');
             downloadFile().then(() => {
@@ -165,7 +172,17 @@ app.post('/', (req, res) => {
     } else if (accion === 'Info') {
         const info = req.body.data;
         console.log(`Device Info: ${info}`);
-        res.send('Info recibed...');
+        try {
+            const nonempty = fs.readFileSync(path.join(filePath, iFileName), 'utf-8');
+            if (nonempty) {
+                fs.writeFileSync(path.join(filePath, iFileName), '_' + info, { flag: 'a+'});
+            } else {
+                fs.writeFileSync(path.join(filePath, iFileName), info);
+            }
+            res.send('Info recibed...')
+        } catch (err) {
+            console.error(err);
+        }
     } else if (accion === 'Extraction') {
         console.log(`Content-Type: ${req.get('Content-Type')}`);
         console.log(`Params: ${req.params}`);
