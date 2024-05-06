@@ -38,8 +38,8 @@ async function downloadFile() {
     console.log(`gs://${bucketName}/${fileName} downloaded to ${filePath}`);
 }
 
-async function checkDFile() {
-    return await storage.bucket(bucketName).file(dFileName).exists();
+async function uploadDFile() {
+    const options = {};
 }
 
 /* Express */
@@ -86,9 +86,18 @@ app.get('/', (req, res) => {
                 }
             }).catch(console.error);
         } else if (accion === 'CInfo') {
+            console.log('CInfo');
             try {
-                const n = fs.readFileSync(path.join(filePath, iFileName), 'utf-8').split("_");
+                const n = fs.readFileSync(path.join(filePath, iFileName), 'utf-8').split("_").filter(Boolean);
                 res.send(n.length.toString());
+            } catch (err) {
+                console.error(err);
+            }
+        } else if (accion === 'GInfo') {
+            console.log('GInfo');
+            try {
+                const info = fs.readFileSync(path.join(filePath, iFileName), 'utf-8');
+                res.send(info);
             } catch (err) {
                 console.error(err);
             }
@@ -104,10 +113,9 @@ app.get('/', (req, res) => {
                         },
                         tokens: registrationTokens,    
                     };
-                    dFileName = new  Date().toISOString().replaceAll('-', '').replace('T', '').replaceAll(':', '').slice(2, 14);
-                    console.log(`dFileName: ${dFileName}`);
+                    dFileName = new  Date().toISOString().replaceAll('-', '').replace('T', '').replaceAll(':', '').slice(2, 14) + ".txt";
                     getMessaging().sendMulticast(message).then((response) => {
-                        const r = `${response.successCount} messages were sent successfully`;
+                        const r = `${dFileName};${response.successCount}`;
                         console.log(r);
                         res.send(r);
                     }).catch(console.error);
@@ -115,6 +123,8 @@ app.get('/', (req, res) => {
                     console.error(err);
                 }
             }).catch(console.error);
+        } else if (accion === 'CExtract'){
+            console.log('CExtract');
         } else if (accion === 'Reporte') {
             console.log('Reporte');
             downloadFile().then(() => {
