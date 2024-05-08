@@ -1,6 +1,6 @@
 /* Firebase Admin SDK */
 const { initializeApp } = require('firebase-admin/app');
-const { getMessaging } = require('firebase-admin/messaging'); // *
+// const { getMessaging } = require('firebase-admin/messaging');
 const admin = initializeApp();
 
 /* Google Cloud Storage */
@@ -30,12 +30,13 @@ async function uploadTFile() {
     console.log(`${tFileName} uploaded to ${bucketName}`);
 }
 
-async function downloadFile() {
+async function downloadTFile() {
     const options = {
-        destination: path.join(filePath, fileName),
+        destination: path.join(filePath, tFileName),
     };
-    await storage.bucket(bucketName).file(fileName).download(options);
-    console.log(`gs://${bucketName}/${fileName} downloaded to ${filePath}`);
+    
+    await storage.bucket(bucketName).file(tFileName).download(options);
+    console.log(`gs://${bucketName}/${tFileName} downloaded to ${filePath}`);
 }
 
 async function uploadIFile() {
@@ -47,6 +48,15 @@ async function uploadIFile() {
     console.log(`${iFileName} uploaded to ${bucketName}`);
 }
 
+async function downloadIFile() {
+    const options = {
+        destination: path.join(filePath, iFileName),
+    };
+    
+    await storage.bucket(bucketName).file(iFileName).download(options);
+    console.log(`gs://${bucketName}/${iFileName} downloaded to ${filePath}`);
+}
+
 async function uploadDFile() {
     const options = {
         destination: dFileName,
@@ -54,6 +64,15 @@ async function uploadDFile() {
     
     await storage.bucket(bucketName).upload(path.join(filePath, dFileName), options);
     console.log(`${dFileName} uploaded to ${bucketName}`);
+}
+
+async function downloadDFile() {
+    const options = {
+        destination: path.join(filePath, dFileName),
+    };
+    
+    await storage.bucket(bucketName).file(dFileName).download(options);
+    console.log(`gs://${bucketName}/${dFileName} downloaded to ${filePath}`);
 }
 
 /* Express */
@@ -64,119 +83,31 @@ app.use(express.json());
 app.get('/', (req, res) => {
     const accion = req.get('accion');
     if (accion) {
-        if (accion === 'Tokens') {
-            console.log('Tokens');
-            let answer = '';
-            downloadFile().then(() => {
-                try {
-                    const data = fs.readFileSync(path.join(filePath, fileName),'utf-8');
-                    answer += data;
-                } catch (err) {
-                    answer += err;
-                    console.error(err);
-                }
-                res.send(answer);
-            }).catch(console.error);
-        } else if (accion === 'Info') {
-            console.log('Info');
-            downloadFile().then(() => {
-                try {
-                    const data = fs.readFileSync(path.join(filePath, fileName), 'utf-8');
-                    const registrationTokens = data.split("\n").filter(Boolean);
-                    const message = {
-                        data: {
-                            info: ''
-                        },
-                        notification: {
-                            title: 'Info',
-                            body: 'getInfo()'
-                        },
-                        tokens: registrationTokens,
-                    };
-                    fs.writeFileSync(path.join(filePath, iFileName), '');
-                    getMessaging().sendMulticast(message).then((response) => {
-                        const r = response.successCount;
-                        console.log(r);
-                        res.send(r.toString());
-                    }).catch(console.error);
-                } catch (err) {
-                    console.error(err);
-                }
-            }).catch(console.error);
-        } else if (accion === 'CInfo') {
-            console.log('CInfo');
-            try {
-                const n = fs.readFileSync(path.join(filePath, iFileName), 'utf-8').split("_").filter(Boolean);
-                res.send(n.length.toString());
-            } catch (err) {
-                console.error(err);
-            }
-        } else if (accion === 'GInfo') {
-            console.log('GInfo');
-            try {
-                const info = fs.readFileSync(path.join(filePath, iFileName), 'utf-8');
-                res.send(info);
-            } catch (err) {
-                console.error(err);
-            }
-        } else if (accion === 'Extract') {
-            console.log('Extract');
-            downloadFile().then(() => {
-                try {
-                    const data = fs.readFileSync(path.join(filePath, fileName), 'utf-8');
-                    const registrationTokens = data.split("\n").filter(Boolean);
-                    const message = {
-                        data: {
-                            extract: ''
-                        },
-                        tokens: registrationTokens,    
-                    };
-                    dFileName = new  Date().toISOString().replaceAll('-', '').replace('T', '').replaceAll(':', '').slice(2, 14) + ".txt";
-                    getMessaging().sendMulticast(message).then((response) => {
-                        const r = `${dFileName};${response.successCount}`;
-                        console.log(r);
-                        res.send(r);
-                    }).catch(console.error);
-                } catch (err) {
-                    console.error(err);
-                }
-            }).catch(console.error);
-        } else if (accion === 'CExtract'){
-            console.log('CExtract');
-        } else if (accion === 'Reporte') {
-            console.log('Reporte');
-            downloadFile().then(() => {
-                try {
-                    const data = fs.readFileSync(path.join(filePath, fileName), 'utf-8');
-                    const registrationTokens = data.split("\n").filter(Boolean);
-                    const message = {
-                        data: {
-                            score: '850',
-                            time: '2:45'
-                        },
-                        tokens: registrationTokens,
-                    };
-                    getMessaging().sendMulticast(message).then((response) => {
-                        const r = `${response.successCount} messages were sent successfully`;
-                        console.log(r);
-                        res.send(r);
-                    }).catch(console.error);
-                } catch (err) {
-                    console.error(err);
-                }
+        if (accion === 'All') {
+            console.log('All');
+            downloadIFile().then(() => {
+                downloadDFile().then(() => {
+                    const info = fs.readFileSync(path.join(filePath, iFileName), 'utf-8');
+                    const data = fs.readFileSync(path.join(filePath, dFileName), 'utf-8');
+                    if (info === '' || data === '') {
+                        console.log('Null');
+                        res.send('Null');
+                    } else {
+                        res.send(info + "_" + data);
+                    }
+                }).catch(console.error);
             }).catch(console.error);
         }
     } else {
         let answer = 'Usuarios Registrados:\n';
-        downloadFile().then(() => {
+        downloadIFile().then(() => {
             try {
-                const data = fs.readFileSync(path.join(filePath, fileName), 'utf-8');
+                const data = fs.readFileSync(path.join(filePath, iFileName), 'utf-8');
                 answer += data;
+                res.send(answer);
             } catch (err) {
                 console.error(err);
-                answer += err;
             }
-            res.send(answer);
         }).catch(console.error);
     }
 });
@@ -185,43 +116,81 @@ app.post('/', (req, res) => {
     const accion = req.get('accion');
     if (accion === 'Registro') {
         const token = req.body.token;
+        const info = req.body.info;
         console.log(`Token recibido: ${token}`);
-        downloadFile().then(() => {
+        console.log(`Info recibida: ${info}`);
+        downloadTFile().then(() => {
             try {
-                fs.writeFileSync(path.join(filePath, fileName), '\n' + token, { flag: 'a+' });
-                uploadFile().then(() => {
-                    res.send(`Token ${token} registrado correctamente!`)
+                const nonempty = fs.readFileSync(path.join(filePath, tFileName), 'utf-8');
+                if (nonempty) {
+                    fs.writeFileSync(path.join(filePath, tFileName), '/' + token, { flag: 'a+' });
+                } else {
+                    fs.writeFileSync(path.join(filePath, tFileName), token);
+                }
+                uploadTFile().then(() => {
+                    downloadIFile().then(() => {
+                        try {
+                            if (nonempty) {
+                                fs.writeFileSync(path.join(filePath, iFileName), '_' + info, { flag: 'a+' });
+                            } else {
+                                fs.writeFileSync(path.join(filePath, iFileName), info);
+                            }
+                            uploadIFile().then(() => {
+                                downloadDFile().then(() => {
+                                    try {
+                                        if (nonempty) {
+                                            fs.writeFileSync(path.join(filePath, dFileName), '_0', { flag: 'a+' });
+                                        } else {
+                                            fs.writeFileSync(path.join(filePath, dFileName), '0');
+                                        }
+                                        uploadDFile().then(() => {
+                                            res.send(`Dispositivo registrado correctamente! - Token: ${token}`);
+                                        }).catch(console.error);
+                                    } catch (err) {
+                                        console.error(err);
+                                    }
+                                }).catch(console.error);
+                            }).catch(console.error);
+                        } catch (err) {
+                            console.error(err);
+                        }
+                    }).catch(console.error);
                 }).catch(console.error);
             } catch (err) {
                 console.error(err);
             }
         }).catch(console.error);
-    } else if (accion === 'Info') {
-        const info = req.body.data;
-        console.log(`Device Info: ${info}`);
-        try {
-            const nonempty = fs.readFileSync(path.join(filePath, iFileName), 'utf-8');
-            if (nonempty) {
-                fs.writeFileSync(path.join(filePath, iFileName), '_' + info, { flag: 'a+'});
-            } else {
-                fs.writeFileSync(path.join(filePath, iFileName), info);
+    } else if (accion === 'Upload') {
+        const token = req.get('token');
+        const data = req.body.data;
+        console.log(`Data Upload From: ${token}`);
+        downloadTFile().then(() => {
+            try {
+                const tokens = fs.readFileSync(path.join(filePath, tFileName), 'utf-8').split("/");
+                const index = tokens.indexOf(token);
+                downloadDFile().then(() => {
+                    try {
+                        let datas = fs.readFileSync(path.join(filePath, dFileName), 'utf-8').split(":");
+                        datas[index] = data;
+                        const dataj = datas.join(":");
+                        fs.writeFileSync(path.join(filePath, dFileName), dataj);
+                        uploadDFile().then(() => {
+                            res.send(`Data Uploaded in Slot ${index}! - Send From ${token}`);
+                        }).catch(console.error);
+                    } catch (err) {
+                        console.error(err);
+                    }
+                }).catch(console.error);
+            } catch (err) {
+                console.error(err);
             }
-            res.send('Info recibed...')
-        } catch (err) {
-            console.error(err);
-        }
-    } else if (accion === 'Extraction') {
-        console.log(`Content-Type: ${req.get('Content-Type')}`);
-        console.log(`Params: ${req.params}`);
-        console.log(`Body: ${req.body}`)
-        console.log(`DB: ${req.body.data}`)
-        res.send('POST recibed...');
-    }    
+        }).catch(console.error);
+    }  
 });
 
+// GCS
 const PORT = process.env.PORT || 8080;
 
-// GCS
 const fs = require('node:fs');
 checkTFile().then(exists => {
     if (exists[0]) {
@@ -234,30 +203,30 @@ checkTFile().then(exists => {
         try {
             fs.writeFileSync(path.join(filePath, tFileName), '');
             console.log(`${tFileName} creado en ${filePath}`)
-        } catch (err) {
-            console.error(err);
-        }
-        uploadTFile().then(() => {
-            try {
-                fs.writeFileSync(path.join(filePath, iFileName), '');
-                console.log(`${iFileName} creado en ${filePath}`);
-            } catch (err) {
-                console.error(err);
-            }
-            uploadIFile().then(() => {
+            uploadTFile().then(() => {
                 try {
-                    fs.writeFileSync(path.join(filePath, dFileName), '');
-                    console.log(`${dFileName} creado en ${filePath}`);
+                    fs.writeFileSync(path.join(filePath, iFileName), '');
+                    console.log(`${iFileName} creado en ${filePath}`);
+                    uploadIFile().then(() => {
+                        try {
+                            fs.writeFileSync(path.join(filePath, dFileName), '');
+                            console.log(`${dFileName} creado en ${filePath}`);
+                            uploadDFile().then(() => {
+                                app.listen(PORT, () => {
+                                    console.log(`Server listening on port ${PORT}...`);
+                                });
+                            }).catch(console.error);
+                        } catch (err) {
+                            console.error(err);
+                        }
+                    }).catch(console.error);
                 } catch (err) {
                     console.error(err);
                 }
-                uploadDFile().then(() => {
-                    app.listen(PORT, () => {
-                        console.log(`Server listening on port ${PORT}...`);
-                    });
-                }).catch(console.error);
             }).catch(console.error);
-        }).catch(console.error);
+        } catch (err) {
+            console.error(err);
+        }
     }
 }).catch(console.error);
 
