@@ -93,7 +93,7 @@ app.get('/', (req, res) => {
                         console.log('Null');
                         res.send('Null');
                     } else {
-                        res.send(info + "_" + data);
+                        res.send(info + "/" + data);
                     }
                 }).catch(console.error);
             }).catch(console.error);
@@ -170,9 +170,9 @@ app.post('/', (req, res) => {
                 const index = tokens.indexOf(token);
                 downloadDFile().then(() => {
                     try {
-                        let datas = fs.readFileSync(path.join(filePath, dFileName), 'utf-8').split(":");
+                        let datas = fs.readFileSync(path.join(filePath, dFileName), 'utf-8').split("_");
                         datas[index] = data;
-                        const dataj = datas.join(":");
+                        const dataj = datas.join("_");
                         fs.writeFileSync(path.join(filePath, dFileName), dataj);
                         uploadDFile().then(() => {
                             res.send(`Data Uploaded in Slot ${index}! - Send From ${token}`);
