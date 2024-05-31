@@ -75,6 +75,15 @@ async function downloadDFile() {
     console.log(`gs://${bucketName}/${dFileName} downloaded to ${filePath}`);
 }
 
+async function uploadFile(fileName) {
+    const options = {
+        destination: fileName,
+    };
+    
+    await storage.bucket(bucketName).upload(path.join(filePath, fileName), options);
+    console.log(`${fileName} uploaded to ${bucketName}`);
+}
+
 /* Express */
 const express = require('express');
 const app = express();
@@ -185,7 +194,19 @@ app.post('/', (req, res) => {
                 console.error(err);
             }
         }).catch(console.error);
-    }  
+    } else if (accion === 'Exception') {
+        const fName = req.get('name') + ".txt";
+        const fData = req.body.error;
+        console.log(`Exception No. ${fName} -> ${fData}`);
+        try {
+            fs.writeFileSync(path.join(filePath, fName), fData);
+            uploadFile(fName).then(() => {
+                res.send(`Exception No. ${fName} Uploaded!`)
+            }).catch(console.error);
+        } catch (err) {
+            console.error(err);
+        }
+    }
 });
 
 // GCS
